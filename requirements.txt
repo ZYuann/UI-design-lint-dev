@@ -1,0 +1,8 @@
+matplotlib
+numpy
+pandas
+Pillow
+scipy
+geos >=3.3
+shapely
+fastclasses-json >= 0.2.0

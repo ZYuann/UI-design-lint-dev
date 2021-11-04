@@ -138,7 +138,6 @@ class PreProcessEachSketch:
                 if isinstance(layer, Artboard):
                     ConsoleColor.YELLOW.cprint(f"[sketch] {self.sketch_file.filepath} processing artboard {layer.name}")
                     # print(layer.frame.width)
-                    # layer = recursive_remove_layers(layer)
                     self.layer_stack = []
                     self.traverse_handler.init_artboard(
                         self.sketch_file, page, layer)

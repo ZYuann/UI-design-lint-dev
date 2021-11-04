@@ -136,17 +136,21 @@ class PreProcessEachSketch:
             for layer in reduced_page.layers:
                 # if the layer is an artboard
                 if isinstance(layer, Artboard):
-                    ConsoleColor.GREEN.cprint(f"[sketch] {self.sketch_file.filepath} processing artboard {layer.name}")
+                    ConsoleColor.YELLOW.cprint(f"[sketch] {self.sketch_file.filepath} processing artboard {layer.name}")
+                    # print(layer.frame.width)
+                    # layer = recursive_remove_layers(layer)
                     self.layer_stack = []
                     self.traverse_handler.init_artboard(
                         self.sketch_file, page, layer)
                     # traverse the artboard and draw
                     self.traverse(layer, Point(0, 0))
                     self.traverse_handler.finish_artboard()
+                    # break # only one artboard
+            # break # only one page
         self.traverse_handler.finish_sketch()
 
     def traverse(self, layer: AnyLayer, parent_xy: Point, transforms: Tuple[Transform, ...] = (),
-                 bound_areas: Tuple[BoundArea, ...] = (), opacity: float = 1, tint: Color = None) -> ClippingMask:
+                 bound_areas: Tuple[BoundArea, ...] = (), opacity: float = 1, tint: Color = None, isKeep: bool = False) -> ClippingMask:
         """
         traverse sketch list and generate image for each sketch artboard
         @param layer: the layer need to be traversed
@@ -167,7 +171,7 @@ class PreProcessEachSketch:
             self.layer_stack.append(layer)
             for i in layer.layers:
                 self.traverse(i, parent_xy, transforms,
-                              sub_bound_areas, opacity, tint)
+                              sub_bound_areas, opacity, tint, isKeep)
             self.layer_stack.pop()
         else:
             # count left top corner point
@@ -206,13 +210,14 @@ class PreProcessEachSketch:
                         layer.style.fills) - 1].color
                 self.layer_stack.append(layer)
                 if self.traverse_handler.if_group_need_handle(layer):
+                    isKeep = True
                     transformed_layer = transform_layer(layer, Point(
-                        xx, yy), sub_transforms, bound_areas, sub_opacity, group_tint)
+                        xx, yy), sub_transforms, bound_areas, sub_opacity, group_tint, True)
                     self.traverse_handler.handle_group(
                         transformed_layer, tuple(self.layer_stack))
                 for i in layer.layers:
                     clipping_mask = self.traverse(
-                        i, xy, sub_transforms, sub_bound_areas, sub_opacity, group_tint)
+                        i, xy, sub_transforms, sub_bound_areas, sub_opacity, group_tint, isKeep)
                     # if the layer has a clipping mask, add it to the bound_areas
                     if clipping_mask.hasClippingMask:
                         sub_bound_areas = sub_bound_areas + \
@@ -228,11 +233,11 @@ class PreProcessEachSketch:
                 # load real symbol from symbol link
                 self.traverse(
                     self.symbol_master_dict[layer.symbolID], xy, sub_transforms, bound_areas,
-                    sub_opacity, tint)
+                    sub_opacity, tint, isKeep)
             else:
                 # get bounding box
                 transformed_layer = transform_layer(layer, Point(xx, yy), sub_transforms, bound_areas, sub_opacity,
-                                                    tint)
+                                                    tint, layer.hasClippingMask or isKeep)
                 self.traverse_handler.handle_layer(
                     transformed_layer, tuple(self.layer_stack) + (layer,))
                 # return the clipping mask if the layer has ClippingMask and the polygon is not empty
